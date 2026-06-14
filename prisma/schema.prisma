@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String   @id @default(cuid())
+  nome                String
+  email               String   @unique
+  senhaHash           String
+  role                String   @default("user") // 'owner' | 'user' (SQLite não suporta enum nativo)
+  percentualComissao  Float    @default(0)
+  criadoEm            DateTime @default(now())
+
+  payments            Payment[]
+  commissions         Commission[]
+}
+
+model Cliente {
+  id          String   @id @default(cuid())
+  nome        String
+  documento   String   @unique // apenas dígitos: 11 (CPF) ou 14 (CNPJ)
+  tipoPessoa  String           // 'PF' | 'PJ'
+  criadoEm    DateTime @default(now())
+
+  payments    Payment[]
+
+  @@index([nome])
+}
+
+model Payment {
+  id               String   @id @default(cuid())
+  userId           String
+  clienteId        String
+  clienteNome      String   // snapshot no momento do pagamento
+  clienteDocumento String   // snapshot no momento do pagamento
+  valorTotal       Float
+  parteAValor   Float
+  parteAEntrada Float
+  parteAQtd     Int
+  parteADias    Int
+  parteAPrimVenc DateTime
+  parteBValor   Float
+  parteBEntrada Float
+  parteBQtd     Int
+  parteBDias    Int
+  parteBPrimVenc DateTime
+  criadoEm      DateTime @default(now())
+
+  user          User         @relation(fields: [userId], references: [id])
+  cliente       Cliente      @relation(fields: [clienteId], references: [id])
+  installments  Installment[]
+  commissions   Commission[]
+
+  @@index([userId])
+  @@index([clienteId])
+}
+
+model Installment {
+  id          String    @id @default(cuid())
+  paymentId   String
+  parte       String    // 'A' | 'B'
+  numero      Int
+  valor       Float
+  vencimento  DateTime
+  status      String    @default("pendente") // 'pendente' | 'pago' | 'vencido'
+  pagaEm      DateTime?
+  clienteNome String
+
+  payment     Payment      @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  commission  Commission?
+  conciliacao Conciliacao?
+
+  @@index([paymentId])
+  @@index([status])
+  @@index([vencimento])
+}
+
+model Conciliacao {
+  id                String   @id @default(cuid())
+  parcelaId         String   @unique
+  nossoNumero       String
+  seuNumero         String
+  pagador           String   // snapshot do nome no arquivo
+  valorPago         Float
+  dataBaixa         DateTime?
+  vencimentoArquivo DateTime?
+  historico         String?
+  tipoCobranca      String?
+  arquivoNome       String
+  criadoEm          DateTime @default(now())
+
+  parcela           Installment @relation(fields: [parcelaId], references: [id], onDelete: Cascade)
+
+  @@unique([nossoNumero, seuNumero])
+}
+
+model Commission {
+  id            String   @id @default(cuid())
+  paymentId     String
+  userId        String
+  parcelaId     String   @unique
+  valorParcela  Float
+  valorReceber  Float
+  geradoEm      DateTime @default(now())
+
+  payment       Payment     @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id])
+  parcela       Installment @relation(fields: [parcelaId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([paymentId])
+}
