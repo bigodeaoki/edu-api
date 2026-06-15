@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
+import { SeedService } from './bootstrap/seed.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -21,5 +22,6 @@ import { ClientesModule } from './clientes/clientes.module';
     CommissionsModule,
     DashboardModule,
   ],
+  providers: [SeedService],
 })
 export class AppModule {}

@@ -14,15 +14,15 @@ Veja o [README da raiz](../README.md) para detalhes.
 
 ## Setup nativo (sem Docker)
 
-Requer um MySQL acessível. O `docker compose` já expõe um em `localhost:3306`
-(usuário `edu` / senha `edu` / banco `edu`), então basta subir o MySQL e rodar:
+Requer um MySQL acessível. O `docker compose` já expõe um em `localhost:3307`
+(usuário `edu` / senha `edu` / banco `edu`); aponte o `DATABASE_URL` do `.env`
+para essa porta. Depois:
 
 ```bash
 npm install
 npx prisma generate
-npx prisma db push     # cria/atualiza as tabelas a partir do schema
-npm run seed           # cria owner@edu.com / owner123
-npm run start:dev
+npx prisma db push     # cria as tabelas a partir dos models
+npm run start:dev      # a aplicação cria o admin padrão no bootstrap
 ```
 
 A API sobe em `http://localhost:3001` (porta definida por `PORT` no `.env`).
@@ -43,7 +43,7 @@ pasta `prisma/migrations` já no provider `mysql`.
 | `JWT_SECRET` | `...` | Segredo do JWT |
 | `JWT_EXPIRES_IN` | `7d` | Validade do token |
 | `CORS_ORIGIN` | `http://localhost:5174` | Origens permitidas (separadas por vírgula) |
-| `OWNER_EMAIL` / `OWNER_PASSWORD` / `OWNER_NOME` | — | Owner criado pelo seed |
+| `OWNER_EMAIL` / `OWNER_PASSWORD` / `OWNER_NOME` | — | Admin padrão criado no bootstrap |
 
 ## Endpoints principais
 
@@ -58,7 +58,29 @@ pasta `prisma/migrations` já no provider `mysql`.
 
 ## Deploy no Railway
 
-A API de produção roda em `edu-api-production-2e4a.up.railway.app`. No Railway,
-configure as variáveis acima — em especial `DATABASE_URL` apontando para um MySQL
-(plugin MySQL do Railway) e `CORS_ORIGIN` com a URL do front de produção. O start
-de produção é `npm run start:prod` (`node dist/main`).
+A API de produção roda em `edu-api-production-2e4a.up.railway.app`. O build e o
+deploy são controlados pelo [`railway.json`](railway.json):
+
+- **`build.builder: DOCKERFILE`** — usa o mesmo `Dockerfile` do projeto (Prisma,
+  schema e build já prontos na imagem).
+- **`deploy.preDeployCommand: npx prisma db push`** — *release command*: cria/atualiza
+  as tabelas no MySQL **antes** de cada deploy entrar no ar.
+- **`deploy.startCommand: node dist/main.js`** — sobe a API. O **admin padrão** é
+  criado pela própria aplicação no bootstrap ([SeedService](src/bootstrap/seed.service.ts)).
+
+Ou seja, a cada deploy as tabelas são garantidas e o admin é criado automaticamente.
+
+### Pré-requisitos no painel do Railway
+
+Na aba *Variables* do serviço, configure:
+
+- `DATABASE_URL` → MySQL do Railway. Adicione o plugin **MySQL** e referencie a
+  connection string dele (ex.: `${{ MySQL.MYSQL_URL }}`).
+- `JWT_SECRET`, `JWT_EXPIRES_IN`
+- `CORS_ORIGIN` → URL do front de produção.
+- `OWNER_EMAIL` / `OWNER_PASSWORD` / `OWNER_NOME` → credenciais do admin padrão.
+
+> O `preDeployCommand` usa `prisma db push` **sem** `--accept-data-loss`: criação de
+> tabelas e mudanças aditivas passam automaticamente; uma mudança **destrutiva** falha
+> o deploy de propósito, para não apagar dados em produção. Quando o banco tiver dados
+> reais, considere migrar para migrations versionadas (`prisma migrate deploy`).

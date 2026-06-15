@@ -13,8 +13,7 @@ until npx prisma db push --skip-generate --accept-data-loss; do
   sleep 3
 done
 
-echo "→ Rodando seed (idempotente)..."
-npm run seed || echo "  seed pulado (owner já existe ou falhou de forma não-fatal)."
-
+# O usuário admin padrão é criado pela própria aplicação no bootstrap
+# (SeedService / OnApplicationBootstrap), em qualquer ambiente.
 echo "→ Iniciando edu-api na porta ${PORT:-3001}..."
 exec node dist/main.js
