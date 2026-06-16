@@ -13,8 +13,12 @@ async function bootstrap() {
     .map((s) => s.trim())
     .filter(Boolean);
 
+  // CORS_ORIGIN vazio ou contendo "*" libera qualquer origem.
+  // (com a origem refletida, continua compatível com credentials: true)
+  const allowAllOrigins = origins.length === 0 || origins.includes('*');
+
   app.enableCors({
-    origin: origins.length ? origins : true,
+    origin: allowAllOrigins ? true : origins,
     credentials: true,
   });
 
