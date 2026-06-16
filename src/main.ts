@@ -32,7 +32,8 @@ async function bootstrap() {
   );
 
   const port = Number(cfg.get<string>('PORT') ?? 3000);
-  await app.listen(port);
+  // bind em 0.0.0.0 para o proxy do Railway (e o Docker) alcançarem o container
+  await app.listen(port, '0.0.0.0');
   // eslint-disable-next-line no-console
   console.log(`edu-api on http://localhost:${port}`);
 }
