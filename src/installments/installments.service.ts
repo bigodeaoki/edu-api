@@ -1,15 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import type { ParcelaStatus } from '../common/types';
+import type { ParcelaStatus, JwtPayload } from '../common/types';
 
 @Injectable()
 export class InstallmentsService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(status?: ParcelaStatus) {
+  async findAll(status?: ParcelaStatus, user?: JwtPayload) {
     await this.refreshVencidas();
+    // Owner vê todas as parcelas; vendedor vê só as dos próprios pagamentos.
+    const scoped =
+      user && user.role !== 'owner' ? { payment: { userId: user.sub } } : {};
     return this.prisma.installment.findMany({
-      where: status ? { status } : undefined,
+      where: {
+        ...(status ? { status } : {}),
+        ...scoped,
+      },
       orderBy: { vencimento: 'asc' },
     });
   }
@@ -18,12 +24,16 @@ export class InstallmentsService {
    * Atualiza status da parcela. Se virar 'pago', gera Commission
    * com base no % do User dono do Payment (uma vez só por parcela).
    */
-  async updateStatus(id: string, status: ParcelaStatus) {
+  async updateStatus(id: string, status: ParcelaStatus, user?: JwtPayload) {
     const parcela = await this.prisma.installment.findUnique({
       where: { id },
       include: { payment: { include: { user: true } } },
     });
     if (!parcela) throw new NotFoundException('Parcela não encontrada');
+    // Vendedor só altera parcelas dos próprios pagamentos.
+    if (user && user.role !== 'owner' && parcela.payment.userId !== user.sub) {
+      throw new NotFoundException('Parcela não encontrada');
+    }
 
     const becamePago = status === 'pago' && parcela.status !== 'pago';
 

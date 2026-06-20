@@ -4,7 +4,7 @@ import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ClientesService } from '../clientes/clientes.service';
 import { CreatePaymentDto, ParteDivisaoDto } from './dto';
-import type { Parte } from '../common/types';
+import type { Parte, JwtPayload } from '../common/types';
 
 @Injectable()
 export class PaymentsService {
@@ -13,19 +13,25 @@ export class PaymentsService {
     private clientes: ClientesService,
   ) {}
 
-  async findAll() {
+  async findAll(user?: JwtPayload) {
+    // Owner vê todos os pagamentos; vendedor vê apenas os seus.
+    const where = user && user.role !== 'owner' ? { userId: user.sub } : undefined;
     return this.prisma.payment.findMany({
+      where,
       orderBy: { criadoEm: 'desc' },
       include: { installments: true, cliente: true },
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: JwtPayload) {
     const p = await this.prisma.payment.findUnique({
       where: { id },
       include: { installments: true, cliente: true },
     });
     if (!p) throw new NotFoundException('Pagamento não encontrado');
+    if (user && user.role !== 'owner' && p.userId !== user.sub) {
+      throw new NotFoundException('Pagamento não encontrado');
+    }
     return p;
   }
 

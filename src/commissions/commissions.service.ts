@@ -16,6 +16,7 @@ export class CommissionsService {
     return this.prisma.commission.findMany({
       where: { userId },
       orderBy: { geradoEm: 'desc' },
+      include: { user: { select: { id: true, nome: true } } },
     });
   }
 }

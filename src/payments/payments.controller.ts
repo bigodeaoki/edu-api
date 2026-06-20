@@ -11,13 +11,13 @@ export class PaymentsController {
   constructor(private readonly payments: PaymentsService) {}
 
   @Get()
-  findAll() {
-    return this.payments.findAll();
+  findAll(@CurrentUser() user: JwtPayload) {
+    return this.payments.findAll(user);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.payments.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.payments.findOne(id, user);
   }
 
   @Post()
