@@ -11,13 +11,19 @@ export class InstallmentsService {
     // Owner vê todas as parcelas; vendedor vê só as dos próprios pagamentos.
     const scoped =
       user && user.role !== 'owner' ? { payment: { userId: user.sub } } : {};
-    return this.prisma.installment.findMany({
+    const rows = await this.prisma.installment.findMany({
       where: {
         ...(status ? { status } : {}),
         ...scoped,
       },
       orderBy: { vencimento: 'asc' },
+      include: { payment: { select: { apelido: true } } },
     });
+    // Achata o apelido do pagamento na parcela para as listas do front.
+    return rows.map(({ payment, ...rest }) => ({
+      ...rest,
+      apelido: payment?.apelido ?? null,
+    }));
   }
 
   /**

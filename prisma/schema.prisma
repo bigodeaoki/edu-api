@@ -38,6 +38,7 @@ model Payment {
   clienteId        String
   clienteNome      String   // snapshot no momento do pagamento
   clienteDocumento String   // snapshot no momento do pagamento
+  apelido          String?  // rótulo opcional p/ identificar o pagamento nas listas
   valorTotal       Float
   parteAValor   Float
   parteAEntrada Float

@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   MinLength,
   ValidateIf,
@@ -50,6 +51,12 @@ export class CreatePaymentDto {
   @IsOptional()
   @IsString()
   userId?: string;
+
+  /** Apelido opcional para identificar o pagamento nas listas. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  apelido?: string;
 
   /**
    * Cliente existente (selecionado no autocomplete).

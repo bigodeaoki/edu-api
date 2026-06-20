@@ -76,6 +76,7 @@ export class PaymentsService {
           clienteId: cliente.id,
           clienteNome: cliente.nome,
           clienteDocumento: cliente.documento,
+          apelido: dto.apelido?.trim() || null,
           valorTotal: dto.valorTotal,
           parteAValor: dto.parteA.valor,
           parteAEntrada: dto.parteA.entrada,
